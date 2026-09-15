@@ -36,8 +36,7 @@ The three questions actually asked:
 
 **13 languages under test + 1 control, all from FLEURS.** One corpus, one
 recording protocol — adding a second speech corpus would reintroduce the exact
-confound this study exists to remove. More corpora belong in the journal paper,
-with forced-alignment pseudo-GT and a proper external-validity section.
+confound this study exists to remove.
 
 | Family | Languages |
 |---|---|
@@ -85,11 +84,6 @@ language, so it never contains a language under test.
 * **No DISPLACE, no Vaani.** DISPLACE requires a signed per-edition Terms &
   Conditions and forbids redistribution; Vaani is form-gated with unclear
   licence terms. Both are excluded so the pipeline carries zero access risk.
-* **Full RQ3 is deferred.** Adaptation curves, leave-one-family-out and
-  transfer geometry are implemented (Steps 09–10) but disabled by default —
-  they are the journal paper. With 13 languages, regressing transfer gain on
-  typological distance is underpowered regardless of hardware; that needs
-  ~20+ languages.
 
 ### The two vulnerabilities you must manage
 
@@ -498,8 +492,6 @@ code. Keys you will actually touch:
   minimum** for a meaningful κ; a single-member committee makes unanimity
   vacuous and Step 02 warns.
 * `ssl_probe.enabled` — the ICASSP LOLO probe (Step 04b). GPU recommended.
-* `ssl.enabled` / `transfer` — journal-track full RQ3 (Steps 09–10). Leave off
-  for the ICASSP run.
 * `human_gold.split_synthetic_frac` — default 0.5. Fraction of the annotation
   budget spent on synthetic sessions vs. real IndicVoices audio.
 * `human_gold.real_source.lang_config_map` — FLEURS code → IndicVoices HF
@@ -548,8 +540,6 @@ numbers.
 * **`committee_agreement.csv`** justifies the reference. Quote mean Fleiss' κ
   in §3. If it is below 0.60, the reference is weak and you should lean harder
   on the human gold set.
-* **`ssl_probe_meta.csv`** documents the probe's protocol so it is reported as
-  a separate category, not a peer row.
 * **`human_gold_summary.csv`** is your external-validity anchor. If it is
   absent, say so in the limitations rather than implying the synthetic
   benchmark was validated against human labels.
