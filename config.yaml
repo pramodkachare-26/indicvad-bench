@@ -1,0 +1,304 @@
+# =============================================================================
+# IndicVAD-Bench  --  configuration
+# Everything tunable lives here. No hyperparameters or secrets in the code.
+# =============================================================================
+
+project:
+  name: indicvad
+  root: ./run              # used only when storage.mode == local
+  seed: 1234               # master seed; per-session seeds derive from this
+
+# -----------------------------------------------------------------------------
+# STORAGE.  Read this before running on Colab.
+#
+# Google Drive is a FUSE mount: fine for a few large files, pathological for
+# tens of thousands of small ones. Step 02 writes ~20k excerpt WAVs. Putting
+# those on Drive turns a 30-minute step into hours and can trip API quotas.
+#
+#   mode: auto   detect Colab automatically (recommended)
+#   mode: colab  archives + results -> Drive; working dirs -> local scratch
+#   mode: local  everything under project.root
+#
+# Archives live on Drive so a VM disconnect never costs you a re-download;
+# re-extracting to scratch after a restart takes ~2 min.
+# -----------------------------------------------------------------------------
+storage:
+  mode: auto
+  drive_root: /content/gdrive/MyDrive/indicvad
+  scratch_root: /content/indicvad_scratch
+
+# -----------------------------------------------------------------------------
+# Credentials.  Only needed for optional systems.  Leave blank otherwise.
+# -----------------------------------------------------------------------------
+credentials:
+  # Free phone notifications. Pick any hard-to-guess string, then open
+  # https://ntfy.sh/<that string> on your phone to receive push updates as
+  # each step finishes. No signup. Leave blank to disable.
+  ntfy_topic: ""
+
+  # HuggingFace token. Needed ONLY for: (a) pyannote/segmentation-3.0 (gated
+  # model, you must accept its terms on the model page first), (b) faster/
+  # authenticated FLEURS downloads. FLEURS itself is public (CC BY 4.0).
+  hf_token: ""
+  # Alternatively export HF_TOKEN in the shell; env var wins over this f# -----------------------------------------------------------------------------
+# Languages.  13 under test + 1 control, all from FLEURS (one corpus, one
+# recording protocol -- adding a second speech corpus would reintroduce the
+# very confound this study exists to remove).
+#
+# `script` gates the Step 08 phonological-density proxy: it reads ISCII-derived
+# Unicode blocks, so Perso-Arabic languages (Urdu) are scored on detection but
+# excluded from the density regression. Stated in the paper, not hidden.
+#
+# NOTE ON FRAMING: Urdu (PK) and Nepali (NP) are not "Indian languages".
+# Title and abstract say SOUTH ASIAN languages.
+# -----------------------------------------------------------------------------
+languages:
+  # --- Indo-Aryan: four-way laryngeal contrast, breathy-voiced series (H1) ---
+  - {code: hi_in, name: Hindi,     family: Indo-Aryan, script: devanagari,   breathy_series: true,  geminate_load: mid}
+  - {code: bn_in, name: Bengali,   family: Indo-Aryan, script: bengali,      breathy_series: true,  geminate_load: high}
+  - {code: mr_in, name: Marathi,   family: Indo-Aryan, script: devanagari,   breathy_series: true,  geminate_load: mid}
+  - {code: gu_in, name: Gujarati,  family: Indo-Aryan, script: gujarati,     breathy_series: true,  geminate_load: mid}
+  - {code: pa_in, name: Punjabi,   family: Indo-Aryan, script: gurmukhi,     breathy_series: true,  geminate_load: mid}
+  - {code: or_in, name: Odia,      family: Indo-Aryan, script: oriya,        breathy_series: true,  geminate_load: high}
+  - {code: as_in, name: Assamese,  family: Indo-Aryan, script: bengali,      breathy_series: true,  geminate_load: mid}
+  - {code: ne_np, name: Nepali,    family: Indo-Aryan, script: devanagari,   breathy_series: true,  geminate_load: low}
+  # Urdu: near-minimal pair with Hindi (shared phonology, different script).
+  # Detection-only; the orthographic proxy cannot parse Perso-Arabic.
+  - {code: ur_pk, name: Urdu,      family: Indo-Aryan, script: perso-arabic, breathy_series: true,  geminate_load: mid}
+  # --- Dravidian: no breathy series, heavy gemination (H1 control + H2) ------
+  - {code: ta_in, name: Tamil,     family: Dravidian,  script: tamil,        breathy_series: false, geminate_load: high}
+  - {code: ml_in, name: Malayalam, family: Dravidian,  script: malayalam,    breathy_series: false, geminate_load: high}
+  - {code: te_in, name: Telugu,    family: Dravidian,  script: telugu,       breathy_series: false, geminate_load: high}
+  - {code: kn_in, name: Kannada,   family: Dravidian,  script: kannada,      breathy_series: false, geminate_load: high}
+  # --- Control: excluded from the benchmark; babble source only -------------
+  - {code: en_us, name: English,   family: Germanic,   script: latin,        breathy_series: false, geminate_load: low, control: true}
+
+# -----------------------------------------------------------------------------
+# Source data
+# -----------------------------------------------------------------------------
+data:
+  fleurs_repo: google/fleurs
+  fleurs_split: test              # test split ~ 350 utts/lang, ~1.5 h
+  max_utts_per_lang: 400
+  target_sr: 16000
+  # OpenSLR-28 gives BOTH room impulse responses AND point-source noises
+  # (the latter extracted from MUSAN) in a single 1.3 GB download.
+  rirs_url: "https://www.openslr.org/resources/28/rirs_noises.zip"
+  # Optional: full MUSAN (11 GB). Only enable if you want the extra noise
+  # diversity and have the bandwidth/disk.
+  use_musan: false
+  musan_url: "https://www.openslr.org/resources/17/musan.tar.gz"
+
+# -----------------------------------------------------------------------------
+# Reference-label construction (Step 02).
+# Speech excerpts are kept only where a committee unanimously agrees, then
+# eroded inward so retained regions are confidently speech.
+# -----------------------------------------------------------------------------
+reference:
+  # Three independent detectors: a level cue, a spectral-divergence cue, and a
+  # learned model. Two is the minimum for a meaningful kappa; three is better,
+  # since a single outlier is then visible in the pairwise Cohen's kappas.
+  committee: [energy, ltsd, silero]
+  min_committee_agreement: 1.0    # 1.0 = unanimity
+  edge_erosion_s: 0.15            # trim this much off each excerpt edge
+  min_excerpt_s: 1.0
+  max_excerpt_s: 8.0
+  min_pause_s: 0.20               # internal gaps shorter than this stay 'speech'
+  # Circularity control: when True, Step 02 additionally builds a per-system
+  # reference in which that system is excluded from the committee. Slower
+  # (one pass per system) but this is what silences the obvious reviewer
+  # objection. Reported as a sensitivity row in the results.
+  leave_system_out: true
+
+# -----------------------------------------------------------------------------
+# Benchmark synthesis (Step 03).  GT is exact by construction.
+# CRITICAL: silence durations and noise clips are seeded on SESSION INDEX ONLY,
+# never on language, so language is the sole free factor across the grid.
+# -----------------------------------------------------------------------------
+benchmark:
+  sessions_per_lang: 20
+  session_duration_s: 45
+  lead_trail_sil_s: 1.0
+  pause_lognormal:
+    mu: -0.7                      # median pause ~ 0.50 s
+    sigma: 0.60
+    min_s: 0.25
+    max_s: 2.50
+  dev_fraction: 0.4               # sessions reserved for hyperparameter fitting
+
+# -----------------------------------------------------------------------------
+# Corruption grid.  Full grid size = |snr| x |noise| x |reverb|.
+# Default 6 x 3 x 2 = 36 conditions. Trim for a faster first pass.
+# SNR is ACTIVE-SPEECH SNR (measured over reference speech regions only).
+# -----------------------------------------------------------------------------
+conditions:
+  snr_db: [20, 15, 10, 5, 0, -5]
+  noise_types: [pointsource, isotropic, babble]
+  reverb: [none, rir]
+  babble_n_talkers: 8
+
+  # Mixing raises output level (+41% at 0 dB, +100% at -5 dB). Left
+  # uncorrected, level co-varies with SNR and fixed-threshold VADs show a
+  # "SNR effect" that is partly a level effect -- an undeclared channel
+  # confound. `match_speech_rms` applies a single global gain so output RMS
+  # equals the original active-speech RMS; because the gain is global, the
+  # achieved SNR is exactly invariant. Use `none` for raw additive mixing.
+  level_normalization: match_speech_rms
+  verify_snr: true                # warn if achieved SNR drifts > 0.25 dB
+
+# -----------------------------------------------------------------------------
+# VAD systems.  `subsample` = fraction of sessions to run (for slow systems).
+# Runtime estimates below assume 4 cores, ~20 h of conditioned audio.
+# -----------------------------------------------------------------------------
+systems:
+  energy:     {enabled: true,  subsample: 1.00}   # ~10 min   (pure numpy)
+  ltsd:       {enabled: true,  subsample: 1.00}   # ~25 min   (pure numpy)
+  webrtc:     {enabled: true,  subsample: 1.00, aggressiveness: 2}  # ~5 min
+  silero:     {enabled: true,  subsample: 1.00}   # ~45 min   (onnxruntime CPU)
+  rvad:       {enabled: false, subsample: 0.25}   # ~3 h at full; subsample it
+  # --- GPU-worthwhile systems. Enable these on Colab; they are the reason to
+  # --- use a GPU at all. Both wrappers batch their windows, without which the
+  # --- GPU sits idle and gives almost no speedup.
+  marblenet:  {enabled: false, subsample: 1.00, batch_size: 256, shift_s: 0.02}
+  pyannote:   {enabled: false, subsample: 1.00, batch_size: 32}
+
+# -----------------------------------------------------------------------------
+# Frozen SSL probe (Step 04b).  GPU strongly recommended.
+#
+# Trained LEAVE-ONE-LANGUAGE-OUT: the head scoring Tamil never sees a Tamil
+# frame. Report it as a SEPARATE CATEGORY in the systems table -- "supervised
+# in-domain, unseen target language" -- not as a peer of the zero-shot systems,
+# which never see the benchmark at all.
+#
+# Features are never cached (~35 GB over the full grid). Training uses the
+# reduced `train_conditions` on dev sessions; inference covers the full grid.
+# -----------------------------------------------------------------------------
+ssl_probe:
+  enabled: false                  # set true on Colab GPU
+  model_name: microsoft/wavlm-base-plus   # or facebook/wav2vec2-xls-r-300m
+  layer: 6                        # VAD-relevant info peaks early-to-middle
+  hidden: 128
+  epochs: 6
+  batch_size: 1024
+  lr: 0.001
+  chunk_s: 30.0                   # encoder chunk length (GPU memory)
+  train_conditions: [clean, pointsource_snr10_none, pointsource_snr0_rir]
+
+# -----------------------------------------------------------------------------
+# Scoring
+# -----------------------------------------------------------------------------
+scoring:
+  frame_ms: 10
+  collars_s: [0.0, 0.25]          # report both no-collar and 250 ms forgiveness
+  boundary_tolerances_s: [0.02, 0.05, 0.10, 0.20]
+  boundary_match_window_s: 1.0
+  dcf_miss_weight: 0.75           # NIST OpenSAD convention
+  dcf_fa_weight: 0.25
+
+# -----------------------------------------------------------------------------
+# Decoding hyperparameter grid (Step 07).  Applied to CACHED posteriors, so
+# this whole step costs seconds, not hours. This is the headline experiment.
+# -----------------------------------------------------------------------------
+hparam_grid:
+  threshold:     [0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80]
+  min_speech_s:  [0.00, 0.05, 0.10, 0.20]
+  min_silence_s: [0.05, 0.10, 0.20, 0.35, 0.50]
+  pad_s:         [0.00, 0.05, 0.10, 0.20]
+
+# -----------------------------------------------------------------------------
+# Statistics (Step 06)
+# -----------------------------------------------------------------------------
+stats:
+  n_bootstrap: 2000
+  n_permutation: 5000
+  alpha: 0.05
+
+# -----------------------------------------------------------------------------
+# FULL RQ3 (steps 09 + 10).  Requires a GPU to be practical.
+#
+# The encoder is FROZEN and its features are cached once by step 09; every
+# transfer experiment in step 10 then trains a small head on cached tensors and
+# costs seconds. That is what makes full RQ3 fit in a free Colab allocation.
+#
+# LoRA / adapter fine-tuning of the encoder was deliberately NOT implemented:
+# 8 languages x 5 budgets x 3 protocols is ~120 encoder runs (20+ GPU-hours),
+# which exceeds a free allocation and would not change the qualitative answer.
+# -----------------------------------------------------------------------------
+ssl:
+  enabled: false                  # set true on Colab GPU
+  model: microsoft/wavlm-base-plus
+  layer: auto                     # 'auto' runs the layer probe; or pin an int
+  probe_sessions_per_lang: 2      # sessions used for the layer probe only
+  # RQ3 uses a CONDITION SUBSET. The full 37-cell grid would inflate the
+  # feature cache ~10x and supports no additional claim.
+  conditions:
+    include_clean: true
+    snr_db: [10, 0]
+    noise_types: [pointsource]
+    reverb: [none]
+
+transfer:
+  budgets_min: [1, 5, 15, 60]     # minutes of target-language adaptation audio
+  hidden: 256
+  epochs: 6
+  adapt_epochs: 4
+  lr: 0.001
+  adapt_lr: 0.0005
+  batch_size: 1024
+  frame_stride: 2                 # keep every Nth frame; 2 halves cost, ~no loss
+
+# -----------------------------------------------------------------------------
+# Human annotation pack (Step 08b). Generates stimuli + Audacity label
+# templates so you can hand-annotate a small gold set. HIGH VALUE, LOW COST.
+# -----------------------------------------------------------------------------
+human_gold:
+  enabled: true
+  seconds_per_language: 150       # TOTAL annotation budget per language
+  annotator_dirs: ["annotator_A", "annotator_B"]   # two returned label sets;
+                                   # each must have synth/ and real/ subfolders
+                                   # of {session_id}_TEMPLATE.txt. Drives
+                                   # Cohen's kappa + boundary MAD scoring.
+  split_synthetic_frac: 0.5       # 50% synthetic benchmark sessions (below),
+                                   # 50% real spontaneous audio (real_source).
+  #
+  # Rationale: synthetic ground truth is already exact by construction, so
+  # annotating synthetic sessions only validates the committee's excerpt
+  # boundaries. Splitting the same budget to cover REAL spontaneous audio
+  # buys speech-style external validity -- the likeliest rejection reason
+  # ("concatenated read speech isn't VAD") -- with no forced alignment,
+  # because humans supply the labels directly.
+  real_source:
+    dataset: ai4bharat/IndicVoices     # CC BY 4.0, verified 2026-08-20
+    split: valid
+    audio_field: audio_filepath
+    text_field: text
+    clip_max_s: 20                     # cap per clip so several accumulate naturally
+    # Config name per language -- HF config names are lowercase full English
+    # names (e.g. "assamese", "bengali"). VERIFY each entry against
+    # https://huggingface.co/datasets/ai4bharat/IndicVoices before running;
+    # only assamese/bengali were directly confirmed at write time. A wrong or
+    # missing entry is skipped with a warning, not a crash -- see
+    # steps/step08_phonology.py::_fetch_real_gold_clips.
+    lang_config_map:
+      hi_in: hindi
+      bn_in: bengali
+      mr_in: marathi
+      gu_in: gujarati
+      pa_in: punjabi
+      or_in: odia
+      as_in: assamese
+      ne_np: nepali
+      ur_pk: urdu
+      ta_in: tamil
+      ml_in: malayalam
+      te_in: telugu
+      kn_in: kannada
+    # ai4bharat/IndicVoices asks for an active HF token even though the data
+    # is CC BY 4.0 (dataset-viewer gating, not a licence restriction).
+    # Reuses credentials.hf_token; set HF_TOKEN in the environment as usual.
+
+runtime:
+  n_jobs: 4                       # parallel worker processes
+  overwrite: false                # re-use cached intermediates when present
+  device: auto                    # auto | cuda | cpu
+  notify_steps: [1, 4, 5, 10]     # push a phone notification after these steps

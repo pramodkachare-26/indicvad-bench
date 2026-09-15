@@ -1,0 +1,42 @@
+# ---------------------------------------------------------------------------
+# REQUIRED -- the signal-processing pipeline runs end to end with just these.
+# ---------------------------------------------------------------------------
+numpy>=1.24
+scipy>=1.10
+pandas>=2.0
+PyYAML>=6.0
+matplotlib>=3.7          # step10 figures
+
+# ---------------------------------------------------------------------------
+# STRONGLY RECOMMENDED
+# ---------------------------------------------------------------------------
+huggingface_hub>=0.23    # step01 FLEURS download
+statsmodels>=0.14        # step06 mixed-effects model (omega^2 works without it)
+scikit-learn>=1.3        # step09 layer probe; step10 head fallback without torch
+webrtcvad>=2.0.10        # webrtc baseline; needs a C compiler on some systems
+tqdm>=4.65
+
+# ---------------------------------------------------------------------------
+# OPTIONAL -- neural VAD baselines. CPU-only is fine but slower.
+# Install torch FIRST from the CPU wheel index to avoid pulling CUDA:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# ---------------------------------------------------------------------------
+# torch>=2.0
+# onnxruntime>=1.16
+# silero-vad>=5.1        # MIT
+# soundfile>=0.12        # fallback reader for non-PCM wavs
+datasets>=2.19            # step01 FLEURS fallback AND step08 real-audio human-gold pack (IndicVoices)
+
+# ---------------------------------------------------------------------------
+# FULL RQ3 (steps 09 + 10) -- needs a GPU to be practical.
+# ---------------------------------------------------------------------------
+# transformers>=4.40     # frozen SSL encoder (WavLM / wav2vec2 / XLS-R)
+# lang2vec               # OPTIONAL: URIEL typological vectors for step 10.
+#                        # Falls back to config-declared attributes if absent.
+
+# ---------------------------------------------------------------------------
+# OPTIONAL -- heavy / gated. Enable the matching system in config.yaml too.
+# ---------------------------------------------------------------------------
+# rVADfast>=0.0.2
+# pyannote.audio>=3.1    # needs credentials.hf_token + accepting model terms
+# nemo_toolkit[asr]>=1.23  # MarbleNet; large install, slow on CPU

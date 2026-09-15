@@ -1,0 +1,31 @@
+HUMAN GOLD ANNOTATION -- IndicVAD-Bench
+=======================================
+
+This pack has TWO parts, 26 synthetic + 170 real clips:
+
+  1. SYNTHETIC (top-level *.wav) -- exact-GT benchmark audio.
+     Annotating these checks the reference-committee's excerpt
+     boundaries, not real-world VAD performance.
+  2. REAL (real/*.wav) -- spontaneous speech from IndicVoices
+     (CC BY 4.0). No synthetic construction, no forced alignment:
+     you are the ground truth. This is the external-validity
+     evidence for the paper.
+
+For each wav: open in Audacity, File > Import > Labels on the
+matching _TEMPLATE.txt, mark every SPEECH region, then
+File > Export > Export Labels back over the same filename.
+
+Conventions (must match the synthetic reference):
+  * Pauses SHORTER than 0.20 s are NOT marked as silence -- they
+    stay inside the speech region. This covers stop closures and
+    geminates, and is the convention the benchmark assumes.
+  * Breaths, coughs, lip smacks: NOT speech.
+  * Mark boundaries at the first/last visible glottal pulse or
+    frication energy, not at the waveform envelope knee.
+  * Two annotators per file. Disagreements are kept, not resolved:
+    report Cohen's kappa and median boundary disagreement.
+  * Report synthetic and real subsets SEPARATELY in the paper --
+    they answer different questions (reference validation vs.
+    external validity) and should not be pooled into one number.
+
+Then run:  python main.py --steps 03b --score-human-gold

@@ -1,0 +1,56 @@
+\begin{table}[t]
+\centering
+\caption{Variance components ($\omega^2$) of VAD frame error by factor.}
+\label{tab:variance}
+\begin{tabular}{lrrrr}
+\toprule
+factor & energy & ltsd & silero & webrtc \\
+\midrule
+lang & 0.222 & 0.199 & 0.294 & 0.084 \\
+noise & 0.113 & 0.071 & 0.065 & 0.063 \\
+reverb & 0.000 & 0.001 & 0.020 & 0.000 \\
+snr_db & 0.254 & 0.257 & 0.165 & 0.292 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Per-language decoding retuning: global vs per-language vs oracle DetER.}
+\label{tab:hparam}
+\begin{tabular}{lrrrrr}
+\toprule
+system & deter_global & deter_perlang & deter_oracle & gap_closed_frac & rel_improvement \\
+\midrule
+energy & 0.272 & 0.264 & 0.262 & 0.695 & 0.038 \\
+ltsd & 0.379 & 0.377 & 0.375 & 0.473 & 0.005 \\
+silero & 0.259 & 0.254 & 0.253 & 0.659 & 0.016 \\
+webrtc & 0.354 & 0.346 & 0.345 & 0.212 & 0.023 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Mean DetER by language (noisy conditions).}
+\label{tab:langmeans}
+\begin{tabular}{llrrrr}
+\toprule
+lang & family & energy & ltsd & silero & webrtc \\
+\midrule
+as_in & Indo-Aryan & 0.540 & 0.581 & 0.209 & 0.437 \\
+bn_in & Indo-Aryan & 0.442 & 0.453 & 0.170 & 0.405 \\
+gu_in & Indo-Aryan & 0.439 & 0.487 & 0.159 & 0.391 \\
+hi_in & Indo-Aryan & 0.537 & 0.619 & 0.242 & 0.438 \\
+kn_in & Dravidian & 0.463 & 0.517 & 0.317 & 0.311 \\
+ml_in & Dravidian & 0.486 & 0.455 & 0.223 & 0.400 \\
+mr_in & Indo-Aryan & 0.707 & 0.716 & 0.472 & 0.476 \\
+ne_np & Indo-Aryan & 0.524 & 0.633 & 0.210 & 0.362 \\
+or_in & Indo-Aryan & 0.626 & 0.660 & 0.517 & 0.560 \\
+pa_in & Indo-Aryan & 0.527 & 0.507 & 0.200 & 0.230 \\
+ta_in & Dravidian & 0.529 & 0.638 & 0.309 & 0.388 \\
+te_in & Dravidian & 0.503 & 0.515 & 0.222 & 0.426 \\
+ur_pk & Indo-Aryan & 0.380 & 0.401 & 0.149 & 0.382 \\
+\bottomrule
+\end{tabular}
+\end{table}
