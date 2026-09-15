@@ -330,8 +330,7 @@ pip install -r requirements.txt
 pip install torch --index-url https://download.pytorch.org/whl/cpu   # optional
 ```
 
-Set `storage.mode: local` in `config.yaml` (or leave `auto` — it detects).
-
+Set `storage.mode: local` in `config.yaml` (or leave `auto` — it detects)
 ---
 
 ## 6. Storage layout (read this before running on Colab)
@@ -404,8 +403,6 @@ Every step is idempotent and resumable. Step 04 checkpoints per
 | 06 | Variance decomposition (RQ1) | `variance_components.csv` +4 |
 | 07 | Decoding retuning (RQ3-lite) | `hparam_tuning.csv` |
 | 08 | Phonology (RQ2) | `phono_regression.csv` |
-| 09 | *Optional* frozen-SSL features + layer probe (GPU) | `ssl_layer_probe.csv` |
-| 10 | *Optional* RQ3 transfer curves, LOLO/LOFO | `transfer_curves.csv` |
 | 11 | Assemble upload bundle | `06_paper_pack/` |
 
 Step 08 no longer emits the annotation pack — see §3. If `frame_metrics.csv`
@@ -427,13 +424,11 @@ all?" (it approximates the ceiling reachable without target-language
 supervision). `ssl_probe_meta.csv` records the encoder, layer, protocol and
 category so the table caption writes itself.
 
-If Step 09's feature cache exists, Step 04b reuses it instead of re-encoding.
-
 ### Monitoring from your phone
 
 Set `credentials.ntfy_topic` to any hard-to-guess string, then open
 `https://ntfy.sh/<that string>` on your phone. You get a push notification
-after each step in `runtime.notify_steps` (default: 1, 4, 5, 10) and on any
+after each step in `runtime.notify_steps` (default: 1, 4, 5) and on any
 failure. No signup, no API key. Delivery failures never kill the run.
 
 ```yaml
