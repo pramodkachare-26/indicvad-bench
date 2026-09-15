@@ -446,62 +446,7 @@ needs committing.
 
 ---
 
-## 9. Full RQ3 (steps 09-10) — journal track, disabled by default
-
-Enable with `ssl.enabled: true`. Requires a GPU to be practical.
-
-**Why it is affordable.** The encoder is frozen and its features are cached
-once by step 09. Every transfer experiment in step 10 then trains a small head
-on cached tensors, so the whole grid of protocols x budgets x languages costs
-minutes instead of GPU-hours.
-
-| Component | Cost on T4 | Included |
-|---|---|---|
-| WavLM-base feature extraction (4-condition subset) | ~25 min once | yes |
-| Layer-wise probe | ~10 min | yes |
-| Adaptation curves {1, 5, 15, 60} min x 8 languages | ~30 min | yes |
-| Leave-one-language-out + leave-one-family-out | included | yes |
-| LoRA/adapter fine-tuning of the encoder | 20+ GPU-h | **no** |
-
-**Protocols** per held-out target language L:
-
-| Protocol | Trained on | Measures |
-|---|---|---|
-| `matched` | all languages incl. L | upper bound |
-| `lolo` | the other 7 | unseen-language penalty |
-| `lofo` | the other family only | typological penalty |
-| `lolo+adapt(n)` | `lolo`, then n min of L | adaptation economics |
-
-**Layer probe.** VAD information in SSL models peaks in early-to-middle layers,
-not the last one that many papers take by default. `layer: auto` measures this
-and reports `ssl_layer_probe.csv`. If the best layer is not the last, say so.
-
-**Two result shapes to expect, and how to read them:**
-
-* Gap closure **above 100%** means the adapted head beat the matched
-  multilingual head. That is real -- a specialist can outperform a generalist.
-  Report it; do not clamp it.
-* The typology correlation may come back **undefined**. With a balanced
-  two-family design every language sits at the same mean distance from the
-  others, so the predictor has no variance. Step 10 detects this and says so
-  rather than emitting a bare `nan`. Fixing it needs languages at varying
-  typological remove, not two tight clusters.
-
-### The binding constraint is page count, not compute
-
-You have 4 pages. The original 1.4-page §5 budget already covers the variance
-table, the phone-class figure and the hyperparameter table. Adding RQ3 costs
-about 0.35 more.
-
-| Choice | Page cost | Verdict |
-|---|---|---|
-| RQ3 as **one** figure (curves + LOLO/LOFO), typology -> one sentence | -0.35 | **recommended** |
-| Compress §3, point to released code for construction detail | +0.25 | do this to pay for it |
-| RQ3 with layer-probe figure *and* typology figure | -0.8 | does not fit |
-
----
-
-## 10. SNR, level, and mixing
+## 9. SNR, level, and mixing
 
 **SNR is active-speech SNR.** Speech level is measured over reference speech
 frames only. Sessions are majority silence by construction (inserted pauses up
@@ -541,7 +486,7 @@ licenses the claim that language is the only free factor. Do not remove it.
 
 ---
 
-## 11. Configuration
+## 10. Configuration
 
 Everything tunable is in **`config.yaml`**; no hyperparameters or secrets in
 code. Keys you will actually touch:
@@ -580,7 +525,7 @@ code. Keys you will actually touch:
 
 ---
 
-## 12. Reading the output
+## 11. Reading the output
 
 Upload the whole **`run/06_paper_pack/`** folder. It contains the CSVs, a
 LaTeX-ready `tables.tex`, two figures, and `SUMMARY.md` with the headline
@@ -627,7 +572,7 @@ claim.
 
 ---
 
-## 13. Layout
+## 12. Layout
 
 ```
 colab_indicvad.ipynb     Colab GPU notebook (start here)
