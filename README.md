@@ -2,9 +2,6 @@
 
 **Disentangling language from channel in voice activity detection for Indian languages.**
 
-Target venue: **ICASSP 2027** — Toronto, 16–21 May 2027. Paper deadline
-**16 September 2026, 23:59:59 AoE (UTC−12)**. 4 pages + 1 page references.
-
 ---
 
 ## 1. What this answers, and what it deliberately does not
@@ -193,27 +190,6 @@ speech_intervals = [(1.0, 3.47), (4.15, 6.05), (7.15, 10.15), ...]
 That is a real, precise definition. It is just narrower, and different from
 what a human listening to natural speech would call speech.
 
-### Is this defensible?
-
-Yes for some claims, no for others — say both in §3 rather than only one.
-
-**Defensible:**
-
-| Claim | Why |
-|---|---|
-| Relative system ranking under known SNR/reverb/language | Every system faces identical corrupted audio and an identical boundary definition — a fair race, even with a narrow finish line. |
-| RQ1: variance decomposition (language vs. SNR vs. noise) | Content and pause structure are held constant, so differences across languages still reflect real acoustic/phonological properties, not annotation drift. |
-| RQ2: boundary precision (onset/offset deviation, over-splitting) | The true boundary is known up to committee/erosion uncertainty, so millisecond-level disagreement is meaningful. |
-
-**Not defensible:**
-
-| Gap | What's missing |
-|---|---|
-| Real onsets/offsets | Soft onsets, trailing vocal fry, breath before a word — the hardest part of real VAD — is exactly the 150 ms fringe eroded away. The difficult cases are excluded by construction. |
-| Disfluency, filled pauses, overlap | FLEURS is clean read speech: no "um," no cross-talk, no whispering, no emotional register. |
-| Natural pause statistics | Real conversational pauses are not lognormal with these parameters, and plausibly correlate with language — the very confound this design avoids, at the cost of the silences being unrepresentative of what a real VAD encounters. |
-| Circularity | A bias shared by all three committee members (e.g. consistently late onset on retroflex-initial syllables) is baked into "ground truth"; a system that gets the *true* onset right is then scored as wrong. |
-
 **One-line summary for §3:**
 
 > Reference labels are the committee-verified, edge-eroded interior of clean
@@ -311,7 +287,7 @@ never contains a language under test.
 
 ## 5. Where to run it
 
-### Colab GPU (recommended) — `colab_indicvad.ipynb`
+### GPU (recommended) — `colab_indicvad.ipynb`
 
 Open the notebook, set **Runtime → Change runtime type → T4 GPU**, and work
 through the cells. It handles Drive mounting, the storage split, install,
@@ -651,22 +627,7 @@ claim.
 
 ---
 
-## 13. Suggested 4-week schedule
-
-| Window | Milestone |
-|---|---|
-| **Aug 20 (day 1)** | **`python main.py --steps 03b`** — start the real-audio download and commission the annotator *before* anything else, in parallel with everything below |
-| Aug 20–23 | Colab setup, `selftest.py`, smoke run, Step 01–03 |
-| Aug 24–30 | Full Step 04 on GPU with pyannote enabled, Step 05–07; re-run Step 03b once Step 03 is done so the synthetic half fills in |
-| Aug 31–Sep 6 | Step 08, `leave_system_out` sensitivity, freeze figures, draft §1–§4 |
-| Sep 7–13 | Human gold returns (`--score-human-gold`); complete draft; internal review |
-| Sep 14–16 | Compress to 4 pages, references, submit early |
-
-Confirm the ICASSP 2027 CFP's anonymity and arXiv policy before any preprint.
-
----
-
-## 14. Layout
+## 13. Layout
 
 ```
 colab_indicvad.ipynb     Colab GPU notebook (start here)
